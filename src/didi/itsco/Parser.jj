@@ -1,0 +1,356 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.28+ wizard for JavaCC 1.5.0+
+ */options{  static = true;}PARSER_BEGIN(Parser)package didi.itsco;
+
+import java.util.ArrayList;
+
+public class Parser{
+
+  private static ArrayList<Variable> listaVariables;
+    public static void main(String args [])  {
+    listaVariables = new ArrayList<Variable>();    Parser parser = new Parser(System.in);
+    try
+    { 
+    System.out.println("Bienvenidos a mi compilador");
+    System.out.println(" >>>>>>>>>>>>>>>>>> ");
+    Parser.gramaticaPrincipal();
+    System.out.println("Compilo correctamente");
+  	}
+  	catch(ParseException pex)
+  	{
+  	  System.err.println(pex.getMessage());
+  	}
+  	catch(ExcepcionSemantica es)
+  	{
+  	  System.err.println(es.getMessage());
+  	}  }
+
+  private static boolean existeVariable(Variable variable)
+  {	return listaVariables.contains(variable);
+  }
+
+  private static void agregarVariable(Variable variable)
+  throws ExcepcionSemantica
+  {	if(!existeVariable(variable))
+	{
+	  listaVariables.add(variable);
+	}
+	else
+	{
+	  throw new ExcepcionSemantica(variable, ExcepcionSemantica.Tipo.VARIABLE_DUPLICADA);
+	}
+  }
+
+  private static void variableDefinida(Variable variable)
+  throws ExcepcionSemantica
+  {	if(!existeVariable(variable))
+	{
+		throw new ExcepcionSemantica(variable, ExcepcionSemantica.Tipo.VARIABLE_NO_DEFINIDA);
+	}
+  }
+
+  private static void variableInicializada(Variable variable)
+  throws ExcepcionSemantica
+  {	/*Obtengo la variable de la lista(referencia)*/
+	int index = listaVariables.indexOf(variable);
+	variable = listaVariables.get(index);
+	if(!variable.isInicializada())
+	{
+		throw new ExcepcionSemantica(variable, ExcepcionSemantica.Tipo.VARIABLE_NO_INICIALIZADA);
+	}
+  }}PARSER_END(Parser)SKIP :{  " "| "\r"| "\t"| "\n"}/*Palabras reservadas*/
+TOKEN :
+{
+  < INTERES: "interes" >
+| < AZ: "az" >
+| < DESINTERES: "desinteres" >
+
+| < AZWRITE: "azwrite" >
+| < AZREAD: "azread" >
+
+| < IFE: "ife" >
+| < ELFO: "elfo">
+
+| < SBRUJA: "sbruja" >
+| < CASSETTE: "cassette" >
+| < DANCE: "dance" >
+| < NA: "na" >
+
+| < FORO: "foro" >
+
+| < WHITE: "white" >
+| < DON: "don" >
+
+| < PROGRAMA: "programa" >
+}
+
+/*Simbolos y operadores*/
+TOKEN :
+{
+  < SUMA: "+" >
+| < RESTA: "-" >
+| < MULTIPLICACION: "*" >
+| < DIVISION: "/" >
+| < RESIDUO: "%" >
+| < IGUAL: "=" >
+
+| < MAYOR: ">" >
+| < MENOR: "<" >
+
+| < AND: "&&" >
+| < OR: "||" >
+| < NOT: "!" >
+
+| < AP: "(" >
+| < CP: ")" >
+
+| < ALL: "{" >
+| < CLL: "}" >
+
+| < PC: ";" >
+| < PP: ":" >
+}
+
+/*Tokens dinamicos (nacen a partir de una REGEX)*/
+TOKEN :
+{
+  < #digitos: ["0"-"9"] >
+| < #letras: ["a"-"z","A"-"Z"] >
+| < ID: (<letras>|"_")(<letras>|<digitos>|"_")*>
+
+| < VALOR_ENTERO: (<digitos>)+ >
+| < VALOR_DECIMAL: (<digitos>)+"."(<digitos>)+ >
+| < VALOR_CADENA: "\""(~["\""])+"\"" >
+}
+
+/*SECCION DE GRAMATICAS*/
+void gramaticaPrincipal() throws ExcepcionSemantica:
+{
+  /*Código Java*/
+}
+{
+  /*Código JavaCC*/
+  <PROGRAMA> <ID> <ALL>
+  gramaticaSentencias()
+  <CLL>
+}
+
+void gramaticaSentencias() throws ExcepcionSemantica: {
+}
+{
+  (
+     gramaticaDeclararVariable()
+  |  gramaticaAzread()
+  |  gramaticaAzwrite()
+  |  gramaticaIfe()
+  |  gramaticaWhite()
+  |  gramaticaDonWhite()
+  |  gramaticaSbruja()
+  |  gramaticaAsignacion()
+  |  gramaticaForo()
+  )+
+}
+
+void gramaticaDeclararVariable() throws ExcepcionSemantica: {
+  Token id;
+  Token tipoDato;
+}
+{
+  tipoDato = tipoDato() id = <ID>
+  {
+    Variable v = new Variable(id.image, tipoDato.image);
+  }
+  [ <IGUAL> valor()
+  {
+	v.setInicializada(true);
+  }
+  ]
+  {
+	agregarVariable(v);
+  }
+  <PC>
+}
+
+Token tipoDato() : {
+  Token tipoDato;
+}
+{
+  (    tipoDato = < INTERES >
+    | tipoDato = < AZ >
+    | tipoDato = < DESINTERES >
+  )
+  {return tipoDato; }
+}
+
+void valor() throws ExcepcionSemantica: {
+  Token id;
+}
+{
+  (
+  < VALOR_ENTERO >
+  | < VALOR_CADENA >
+  | < VALOR_DECIMAL >
+  | id = < ID >
+  {
+    Variable v = new Variable();
+    v.setId(id.image);
+    variableDefinida(v);
+    variableInicializada(v);
+  }
+  )
+}
+
+void gramaticaAzread() throws ExcepcionSemantica: {
+  Token id;
+}
+{
+  < AZREAD > < AP > id = < ID >
+  < CP > < PC >
+  {
+    Variable v = new Variable();
+    v.setId(id.image);
+    variableDefinida(v);
+    /*Inicializar la variable correcta...*/
+	int index = listaVariables.indexOf(v);
+	/*System.out.println(index);*/
+	listaVariables.get(index).setInicializada(true);
+	/*System.out.println(listaVariables.get(index).isInicializada());*/
+  }
+}
+
+void gramaticaAzwrite() throws ExcepcionSemantica: {
+}
+{
+  < AZWRITE > < AP >
+  valor()
+  (< SUMA > valor())*
+  < CP > < PC >
+}
+
+void gramaticaIfe() throws ExcepcionSemantica: {
+}
+{
+  < IFE > < AP > condicion() < CP >
+  < ALL > gramaticaSentencias()
+  < CLL >
+  [< ELFO > < ALL >
+  gramaticaSentencias()
+  < CLL >]
+}
+
+void condicion() throws ExcepcionSemantica: {
+}
+{
+  evaluacionSimple() (opLogico() evaluacionSimple())*
+}
+
+void evaluacionSimple() throws ExcepcionSemantica: {
+}
+{
+  valor() opRelacional() valor()
+}
+
+void opRelacional() : {
+}
+{
+  < MAYOR > [< IGUAL >]
+| < MENOR > [< IGUAL >]
+| < NOT > < IGUAL >
+| < IGUAL > < IGUAL >
+}
+
+void opLogico() : {
+}
+{
+  < AND > | < OR >
+}
+
+void gramaticaWhite() throws ExcepcionSemantica: {
+}
+{
+  < WHITE > < AP > condicion() < CP >
+  < ALL >
+  gramaticaSentencias()
+  < CLL >
+}
+
+void gramaticaDonWhite() throws ExcepcionSemantica: {
+}
+{
+  < DON >< ALL >
+  gramaticaSentencias()
+  < CLL > < WHITE > < AP > condicion() < CP > < PC >
+}
+
+void gramaticaSbruja() throws ExcepcionSemantica: {
+  Token id;
+}
+{
+  < SBRUJA > < AP > id = < ID > < CP >
+  < ALL >
+  (
+    < CASSETTE > < VALOR_ENTERO > < PP > gramaticaSentencias()
+    < DANCE > < PC >  )+
+  [< NA > gramaticaSentencias() [< DANCE > < PC >]]
+  < CLL >
+  {
+    Variable v = new Variable();
+    v.setId(id.image);
+    variableDefinida(v);
+    variableInicializada(v);
+  }
+}
+
+void gramaticaAsignacion() throws ExcepcionSemantica: {
+  Token id;
+}
+{
+  id = < ID > < IGUAL > operacionSimple() < PC >
+  {
+    Variable v = new Variable();
+    v.setId(id.image);
+    variableDefinida(v);
+    //
+    int index = listaVariables.indexOf(v);
+    listaVariables.get(index).setInicializada(true);
+  }
+}
+
+void operacionSimple() throws ExcepcionSemantica: {
+}
+{
+  (
+    valor()|operacionParentesis()  )
+  ( operadorAritmetico()
+   ( valor()|operacionParentesis()) )*
+}
+
+void operacionParentesis() throws ExcepcionSemantica: {
+}
+{
+  < AP > operacionSimple() < CP >
+}
+
+void operadorAritmetico() : {
+}
+{
+  < SUMA > | < RESTA > | < MULTIPLICACION > | < DIVISION > | < RESIDUO >
+}
+
+void gramaticaForo() throws ExcepcionSemantica: {
+  Token id;
+}
+{
+  < FORO > < AP > id = < ID > < IGUAL > valor() < PC > condicion() < PC >
+  < ID >
+  ( <SUMA><SUMA>|<RESTA><RESTA>|<IGUAL> operacionSimple() )< CP >
+  < ALL >
+  gramaticaSentencias()
+  < CLL >
+  {
+    Variable v = new Variable();
+    v.setId(id.image);
+    variableDefinida(v);
+    variableInicializada(v);
+  }
+}
